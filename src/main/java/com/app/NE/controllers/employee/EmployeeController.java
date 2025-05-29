@@ -25,7 +25,7 @@ public class EmployeeController {
     private final IAuthService authService;
     private final IEmployeeService employeeService;
 
-    @PreAuthorize("hasAnyRole(MANAGER')")
+    @PreAuthorize("hasAnyRole('MANAGER')")
     @PostMapping("/register")
     public ResponseEntity<ApiResponse> register(@Valid @RequestBody RegisterEmployeeDTO dto) {
         ApiResponse response = authService.registerEmployee(dto);

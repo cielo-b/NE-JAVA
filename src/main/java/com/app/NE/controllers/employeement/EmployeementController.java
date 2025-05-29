@@ -20,7 +20,7 @@ import java.util.UUID;
 public class EmployeementController {
     private final IEmployeementService employeementService;
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('MANAGER')")
     @PostMapping("/register")
     public ResponseEntity<ApiResponse> create(@Valid @RequestBody CreateEmployeementDTO dto) {
         ApiResponse response = employeementService.createEmployeement(dto);

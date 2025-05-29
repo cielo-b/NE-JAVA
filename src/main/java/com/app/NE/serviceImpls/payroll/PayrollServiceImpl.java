@@ -4,12 +4,16 @@ import com.app.NE.dto.requests.ProcessPayrollDTO;
 import com.app.NE.dto.responses.ApiResponse;
 import com.app.NE.enums.EEmployementStatus;
 import com.app.NE.enums.EPaySlipStatus;
+import com.app.NE.exceptions.BadRequestException;
 import com.app.NE.models.*;
 import com.app.NE.repositories.*;
 import com.app.NE.serviceImpls.auth.AuthServiceImpl;
+import com.app.NE.serviceImpls.mail.MailServiceImpl;
 import com.app.NE.services.auth.IAuthService;
 import com.app.NE.services.payroll.IPayrollService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.task.TaskExecutor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,6 +25,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class PayrollServiceImpl implements IPayrollService {
     private final IEmployementRepository employmentRepository;
     private final IDeductionRepository deductionRepository;
@@ -28,10 +33,16 @@ public class PayrollServiceImpl implements IPayrollService {
     private final IEmployeeRepository employeeRepository;
     private final IMessageRepository messageRepository;
     private final IAuthService authServiceImpl;
+    private final IPayrollRepository payrollRepository;
+    private final TaskExecutor taskExecutor;
+    private final MailServiceImpl mailService;
 
     @Override
     @Transactional
     public ApiResponse processPayroll(ProcessPayrollDTO dto) {
+        if(payrollRepository.existsByMonthAndYear(dto.getMonth(), dto.getYear())){
+            throw new BadRequestException(String.format("Payroll month %s and year %s already exists", dto.getMonth(),dto.getYear()));
+        }
                 List<Employment> activeEmployments = employmentRepository.findByStatusAndEmployee_Institution(EEmployementStatus.ACTIVE, authServiceImpl.getPrincipal().getInstitution());
         List<Deduction> deductions = deductionRepository.findAll();
 
@@ -40,6 +51,12 @@ public class PayrollServiceImpl implements IPayrollService {
                 .map(employment -> createPaySlip(employment, deductions, dto.getMonth(), dto.getYear()))
                 .collect(Collectors.toList());
 
+        // create the payroll
+        PayRoll payRoll = new PayRoll();
+        payRoll.setSlips(slips);
+        payRoll.setYear(dto.getYear());
+        payRoll.setMonth(dto.getMonth());
+        payrollRepository.save(payRoll);
         return new ApiResponse(slips, "Payroll processed successfully");
     }
 
@@ -55,6 +72,8 @@ public class PayrollServiceImpl implements IPayrollService {
         slip.setGrossSalary(baseSalary.add(totalDeductionAmount));
         slip.setStatus(EPaySlipStatus.PENDING);
         slip.setEmployee(employment.getEmployee());
+
+        paySlipRepository.save(slip);
 
         return slip;
     }
@@ -99,14 +118,24 @@ public class PayrollServiceImpl implements IPayrollService {
                 List<PaySlip> paySlips = paySlipRepository.findByMonthAndYear(month, year);
         paySlips.forEach(paySlip -> {
             paySlip.setStatus(EPaySlipStatus.PAID);
-            createPaymentMessage(paySlip);
+        Message message = createPaymentMessage(paySlip);
+        taskExecutor.execute(() -> {
+            try{
+                // send the email
+                mailService.sendMail(message);
+            }catch(Exception e){
+                log.error("Failed to send verification email", e);
+            }
+        });
         });
         paySlipRepository.saveAll(paySlips);
+
+
         return new ApiResponse(true, "Payroll approved successfully");
     }
 
     @Override
-    public void createPaymentMessage(PaySlip slip) {
+    public Message createPaymentMessage(PaySlip slip) {
         Message message = new Message();
         message.setMessage("Dear " + slip.getEmployee().getFirstName() + ", your salary payment for " +
                 slip.getMonth() + "/" + slip.getYear() + " has been processed.");
@@ -115,6 +144,6 @@ public class PayrollServiceImpl implements IPayrollService {
         message.setEmployee(slip.getEmployee());
         message.setSentAt(LocalDateTime.now());
         message.setSent(false);
-        messageRepository.save(message);
+        return messageRepository.save(message);
     }
 }

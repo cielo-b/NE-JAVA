@@ -1,10 +1,10 @@
--- Initialize deductions with updated rates
-INSERT INTO deduction (code, deduction_name, percentage) VALUES
-('TAX', 'Employee Tax', 30.0),
-('PENSION', 'Pension', 6.0),
-('MEDICAL', 'Medical Insurance', 5.0),
-('HOUSE', 'House Allowance', 14.0),
-('TRANSPORT', 'Transport Allowance', 14.0),
-('OTHERS', 'Other Deductions', 5.0)
+-- Initialize deductions with updated rates and UUID generation
+INSERT INTO deduction (id, code, deduction_name, percentage) VALUES
+                                                                 (gen_random_uuid(), 'TAX', 'TAX', 30.0),
+                                                                 (gen_random_uuid(), 'PENSION', 'PENSION', 6.0),
+                                                                 (gen_random_uuid(), 'MEDICAL', 'MEDICAL', 5.0),
+                                                                 (gen_random_uuid(), 'HOUSE', 'HOUSING', 14.0),
+                                                                 (gen_random_uuid(), 'TRANSPORT', 'TRANSPORT', 14.0),
+                                                                 (gen_random_uuid(), 'OTHERS', 'OTHER', 5.0)
 ON CONFLICT (deduction_name) DO UPDATE
-SET percentage = EXCLUDED.percentage; 
+    SET percentage = EXCLUDED.percentage;

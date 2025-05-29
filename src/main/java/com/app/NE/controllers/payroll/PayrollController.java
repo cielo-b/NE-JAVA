@@ -1,5 +1,6 @@
 package com.app.NE.controllers.payroll;
 
+import com.app.NE.dto.requests.ApprovePayRollDTO;
 import com.app.NE.dto.requests.ProcessPayrollDTO;
 import com.app.NE.dto.responses.ApiResponse;
 import com.app.NE.services.payroll.IPayrollService;
@@ -49,9 +50,8 @@ public class PayrollController {
     @PostMapping("/approve")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse> approvePayroll(
-            @RequestParam Integer month,
-            @RequestParam Integer year) {
+            @RequestBody ApprovePayRollDTO dto) {
 
-        return ResponseEntity.ok().body(payrollService.approvePayroll(month, year));
+        return ResponseEntity.ok().body(payrollService.approvePayroll(dto.getMonth(), dto.getYear()));
     }
 }

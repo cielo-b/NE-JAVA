@@ -39,6 +39,6 @@ public class User extends InitiatorAudit {
 
     private String institution;
 
-    @OneToOne
+    @ManyToOne(fetch = FetchType.EAGER)
     private Role role;
 }

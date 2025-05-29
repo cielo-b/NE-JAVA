@@ -4,6 +4,7 @@ import com.app.NE.dto.requests.ProcessPayrollDTO;
 import com.app.NE.dto.responses.ApiResponse;
 import com.app.NE.models.Deduction;
 import com.app.NE.models.Employment;
+import com.app.NE.models.Message;
 import com.app.NE.models.PaySlip;
 
 import java.math.BigDecimal;
@@ -19,5 +20,5 @@ public interface IPayrollService {
 
     ApiResponse getEmployeePaySlips(String employeeCode, int month, int year);
     ApiResponse approvePayroll(int month, int year);
-    void createPaymentMessage(PaySlip slip);
+    Message createPaymentMessage(PaySlip slip);
 }

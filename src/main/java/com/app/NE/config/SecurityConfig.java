@@ -40,14 +40,17 @@ public class SecurityConfig {
                         "/error",
                         "/swagger-resources/**",
                         "/api/v1/auth/login",
-                        "/api/v1/chapters/**",
                         "/api/v1/auth/register",
                         "/actuator/**",
                         "/api-docs/**"
                         ).permitAll()
                 // ADMIN && MANAGER AUTHORISED REQs
-                .requestMatchers("/api/v1/employee/register").hasAnyRole("ADMIN", "MANAGER")
-                // CUSTOMER AUTHORISED REQs
+                .requestMatchers("/api/v1/employement/activate/", "/api/v1/employement/deactivate/", "/api/v1/payroll/slips/", "/api/v1/deduction/all", "/api/v1/deduction/create", "/api/v1/deduction/delete/", "/api/v1/deduction/update/").hasAnyRole("ADMIN", "MANAGER")
+                // ADMIN AUTHORISED REQs
+                .requestMatchers("/api/v1/payroll/approve", "/api/v1/employee/all-paginated").hasAnyRole("ADMIN")
+
+                // MANAGER AUTHORISED REQs
+                .requestMatchers("/api/v1/employee/register", "/api/v1/employee/get-my-employees", "/api/v1/employement/register", "/api/v1/employement/update/", "/api/v1/payroll/my-slips", "/api/v1/payroll/process").hasAnyRole("MANAGER")
                 .anyRequest().authenticated());
 
         http.exceptionHandling(
