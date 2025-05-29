@@ -96,7 +96,7 @@ public class PayrollServiceImpl implements IPayrollService {
                     in = baseSalary.add(deduction.getPercentage());
                 }
                 
-                return in.divide(new BigDecimal(100));
+                return in.divide(new BigDecimal(100)).multiply(baseSalary);
     }
 
 
