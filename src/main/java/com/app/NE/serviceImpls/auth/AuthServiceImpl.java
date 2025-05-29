@@ -135,7 +135,6 @@ public class AuthServiceImpl implements IAuthService {
         employee.setDateOfBirth(dto.getDateOfBirth());
         employee.setStatus(dto.getStatus());
         employee.setInstitution(this.getPrincipal().getInstitution());
-        employee.setRole(role);
         employee.setCode(Utility.generateEmployeeCode());
         userRepository.save(user);
         employeeRepository.save(employee);

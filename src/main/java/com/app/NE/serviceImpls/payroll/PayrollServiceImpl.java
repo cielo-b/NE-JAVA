@@ -117,6 +117,9 @@ public class PayrollServiceImpl implements IPayrollService {
     public ApiResponse approvePayroll(int month, int year) {
                 List<PaySlip> paySlips = paySlipRepository.findByMonthAndYear(month, year);
         paySlips.forEach(paySlip -> {
+            if(paySlip.getStatus() == EPaySlipStatus.PAID) {
+                throw new BadRequestException(String.format("Payroll month %s and year %s already approved", month,year));
+            }
             paySlip.setStatus(EPaySlipStatus.PAID);
         Message message = createPaymentMessage(paySlip);
         taskExecutor.execute(() -> {
@@ -138,7 +141,7 @@ public class PayrollServiceImpl implements IPayrollService {
     public Message createPaymentMessage(PaySlip slip) {
         Message message = new Message();
         message.setMessage("Dear " + slip.getEmployee().getFirstName() + ", your salary payment for " +
-                slip.getMonth() + "/" + slip.getYear() + " has been processed.");
+                slip.getMonth() + "/" + slip.getYear() + " has been processed from " + slip.getEmployee().getFirstName() +".");
         message.setYear(slip.getYear());
         message.setMonth(slip.getMonth());
         message.setEmployee(slip.getEmployee());

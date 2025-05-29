@@ -52,8 +52,6 @@ public class Employee  {
     @JsonIgnore
     private String password;
 
-    @OneToOne
-    private Role role;
     private String institution;
 }
 
