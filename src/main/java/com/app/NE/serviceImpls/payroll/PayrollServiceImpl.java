@@ -2,6 +2,7 @@ package com.app.NE.serviceImpls.payroll;
 
 import com.app.NE.dto.requests.ProcessPayrollDTO;
 import com.app.NE.dto.responses.ApiResponse;
+import com.app.NE.enums.EDeductionName;
 import com.app.NE.enums.EEmployementStatus;
 import com.app.NE.enums.EPaySlipStatus;
 import com.app.NE.exceptions.BadRequestException;
@@ -64,13 +65,23 @@ public class PayrollServiceImpl implements IPayrollService {
     public PaySlip createPaySlip(Employment employment, List<Deduction> deductions, int month, int year) {
                 BigDecimal baseSalary = employment.getBaseSalary();
         BigDecimal totalDeductionAmount = calculateTotalDeductions(baseSalary, deductions);
-        BigDecimal netSalary = baseSalary.subtract(totalDeductionAmount);
         PaySlip slip = new PaySlip();
         slip.setMonth(month);
         slip.setYear(year);
-        slip.setNetSalary(netSalary);
-        slip.setGrossSalary(baseSalary.add(totalDeductionAmount));
+        Deduction house = deductionRepository.findByDeductionName(EDeductionName.HOUSE);
+        Deduction tr = deductionRepository.findByDeductionName(EDeductionName.TRANSPORT);
+        BigDecimal percentage = house.getPercentage(); // assuming this is BigDecimal
+        BigDecimal hundred = new BigDecimal(100);
+        BigDecimal fraction = percentage.divide(hundred); // divide to get the fractional percentage
+        BigDecimal h = baseSalary.multiply(fraction);
+        BigDecimal p2 = tr.getPercentage();
+        BigDecimal fr = p2.divide(hundred);
+        BigDecimal t = baseSalary.multiply(fr);
+
+        slip.setGrossSalary(baseSalary.add(t.add(h)));
+        BigDecimal netSalary = baseSalary.add(t.add(h)).subtract(totalDeductionAmount);
         slip.setStatus(EPaySlipStatus.PENDING);
+        slip.setNetSalary(netSalary);
         slip.setEmployee(employment.getEmployee());
 
         paySlipRepository.save(slip);
@@ -80,11 +91,14 @@ public class PayrollServiceImpl implements IPayrollService {
 
     @Override
     public BigDecimal calculateTotalDeductions(BigDecimal baseSalary, List<Deduction> deductions) {
-                return deductions.stream()
-                .map(deduction -> baseSalary.multiply(deduction.getPercentage())
-                        .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP))
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+                BigDecimal in = null;
+                for(Deduction deduction : deductions) {
+                    in = baseSalary.add(deduction.getPercentage());
+                }
+                
+                return in.divide(new BigDecimal(100));
     }
+
 
     @Override
     public ApiResponse getAllPaySlips(int month, int year) {
@@ -121,6 +135,7 @@ public class PayrollServiceImpl implements IPayrollService {
                 throw new BadRequestException(String.format("Payroll month %s and year %s already approved", month,year));
             }
             paySlip.setStatus(EPaySlipStatus.PAID);
+            // get the base
         Message message = createPaymentMessage(paySlip);
         taskExecutor.execute(() -> {
             try{
@@ -139,9 +154,10 @@ public class PayrollServiceImpl implements IPayrollService {
 
     @Override
     public Message createPaymentMessage(PaySlip slip) {
+        System.out.println(slip.getNetSalary());
         Message message = new Message();
         message.setMessage("Dear " + slip.getEmployee().getFirstName() + ", your salary payment for " +
-                slip.getMonth() + "/" + slip.getYear() + " has been processed from " + slip.getEmployee().getFirstName() +".");
+                slip.getMonth() + "/" + slip.getYear() + " has been processed from " + slip.getEmployee().getFirstName() +"." + " amount" + slip.getNetSalary());
         message.setYear(slip.getYear());
         message.setMonth(slip.getMonth());
         message.setEmployee(slip.getEmployee());

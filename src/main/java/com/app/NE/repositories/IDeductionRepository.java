@@ -13,4 +13,6 @@ public interface IDeductionRepository extends JpaRepository<Deduction, UUID> {
     boolean existsByDeductionName(EDeductionName name);
 
     Optional<Deduction> findByCode(String code);
+
+    Deduction findByDeductionName(EDeductionName eDeductionName);
 }
